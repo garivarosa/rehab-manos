@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RehabManos — Historia Clínica TO</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f2ee;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: #e0dbd3;
+    --text: #1a1714;
+    --text2: #6b6560;
+    --accent: #2d6a4f;
+    --accent2: #52b788;
+    --accent3: #b7e4c7;
+    --warn: #e07a5f;
+    --info: #3d405b;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+
+  aside {
+    width: 260px;
+    background: var(--text);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform .3s;
+  }
+
+  .logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .logo h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -.5px;
+    line-height: 1.2;
+  }
+  .logo span { color: var(--accent2); }
+  .logo p { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 4px; font-weight: 300; }
+
+  nav { padding: 16px 12px; flex: 1; }
+  .nav-section { font-size: 10px; letter-spacing: 1.5px; color: rgba(255,255,255,.35); padding: 12px 12px 6px; text-transform: uppercase; }
+
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    color: rgba(255,255,255,.7); text-decoration: none;
+    font-size: 13.5px; font-weight: 400;
+    cursor: pointer; transition: all .15s;
+    margin-bottom: 2px;
+  }
+  nav a:hover, nav a.active {
+    background: rgba(255,255,255,.1);
+    color: #fff;
+  }
+  nav a.active { background: var(--accent); color: #fff; }
+  nav a svg { flex-shrink: 0; opacity: .8; }
+
+  .main { margin-left: 260px; flex: 1; }
+
+  /* HAMBURGER */
+  .hamburger {
+    display: none; background: none; border: none; cursor: pointer;
+    padding: 6px; color: var(--text); margin-right: 8px;
+  }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    aside {
+      transform: translateX(-100%);
+      width: 280px;
+    }
+    aside.open { transform: translateX(0); }
+
+    .main { margin-left: 0; }
+
+    .hamburger { display: flex; align-items: center; }
+
+    header { padding: 12px 16px; }
+    .page-title { font-size: 17px; }
+
+    .content { padding: 16px; }
+
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; }
+
+    .gonio-grid { grid-template-columns: 1fr 1fr !important; }
+    .sw-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+
+    .dash-item { flex-wrap: wrap; }
+    .dash-item select { width: 100%; margin-top: 4px; }
+
+    .stat-card .value { font-size: 28px; }
+
+    .comparison-row { flex-direction: column; }
+    .comparison-label { width: 100%; padding-top: 0; }
+
+    .card-header { flex-wrap: wrap; gap: 8px; padding: 14px 16px; }
+    .card-body { padding: 16px; }
+
+    .modal { width: 96%; max-height: 92vh; }
+    .modal-header { padding: 16px 20px; }
+    .modal-body { padding: 16px 20px; }
+    .modal-footer { padding: 14px 20px; }
+
+    .header-actions { gap: 6px; }
+    .header-actions .btn { padding: 6px 10px; font-size: 12px; }
+
+    .bar-date { width: 50px; font-size: 10px; }
+
+    .chart-wrap { height: 200px; }
+
+    /* Ficha paciente full width en mobile */
+    #page-ficha .grid-2 { gap: 12px; }
+
+    /* Ocultar texto de botones secundarios en mobile si son muy largos */
+    .btn-hide-mobile { display: none; }
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    padding: 8px 18px; border-radius: 8px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #256047; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-warn { background: var(--warn); color: #fff; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-ghost:hover { background: var(--accent3); }
+
+  .content { padding: 32px; max-width: 1100px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-header h3 { font-size: 15px; font-weight: 600; }
+  .card-body { padding: 24px; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 13px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--text);
+    background: var(--bg); transition: border .15s;
+    outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  /* TABLA PACIENTES */
+  .patient-table { width: 100%; border-collapse: collapse; }
+  .patient-table th {
+    text-align: left; padding: 10px 16px;
+    font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--text2); background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .patient-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .patient-table tr:last-child td { border-bottom: none; }
+  .patient-table tr:hover td { background: var(--surface2); cursor: pointer; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-active { background: var(--accent3); color: var(--accent); }
+  .badge-inactive { background: #ffe3de; color: var(--warn); }
+  .badge-eval { background: #e8eaf6; color: var(--info); }
+
+  /* STATS */
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    box-shadow: var(--shadow);
+  }
+  .stat-card .label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .8px; }
+  .stat-card .value { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--text); margin: 6px 0 4px; }
+  .stat-card .sub { font-size: 12px; color: var(--text2); }
+
+  /* EVALUACIONES */
+  .eval-section { margin-bottom: 28px; }
+  .eval-section h4 {
+    font-family: 'DM Serif Display', serif; font-size: 17px;
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent3);
+    color: var(--accent);
+  }
+
+  .slider-wrap { display: flex; align-items: center; gap: 12px; }
+  .slider-wrap input[type=range] { flex: 1; accent-color: var(--accent); }
+  .slider-val {
+    min-width: 40px; text-align: center; font-weight: 600;
+    background: var(--accent); color: #fff;
+    border-radius: 6px; padding: 3px 8px; font-size: 13px;
+  }
+
+  .gonio-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .gonio-item label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; }
+  .gonio-item input { width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; outline: none; }
+  .gonio-item input:focus { border-color: var(--accent); }
+
+  .dash-items { display: flex; flex-direction: column; gap: 8px; }
+  .dash-item { display: flex; align-items: center; gap: 12px; }
+  .dash-item span { flex: 1; font-size: 13px; }
+  .dash-item select { padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 12px; width: 140px; }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content:''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before { content:''; position: absolute; left: -17px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+  .tl-date { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+  .tl-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px 16px; margin-top: 5px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.4); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 16px;
+    width: 90%; max-width: 680px; max-height: 90vh;
+    overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal-header {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+  }
+  .modal-header h2 { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .modal-body { padding: 24px 28px; }
+  .modal-footer { padding: 18px 28px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+  .close-btn { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 20px; line-height: 1; }
+
+  /* SEARCH */
+  .search-wrap { position: relative; }
+  .search-wrap input { padding-left: 36px !important; }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text2); }
+
+  /* CHART */
+  .chart-wrap { position: relative; height: 260px; }
+
+  /* SEMMES */
+  .sw-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .sw-item { text-align: center; }
+  .sw-item label { font-size: 10px; color: var(--text2); display: block; margin-bottom: 4px; }
+  .sw-item select { width: 100%; padding: 5px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 11px; }
+
+  .section-divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--text2); }
+  .empty-state svg { margin-bottom: 12px; opacity: .3; }
+  .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
+  .empty-state p { font-size: 13px; }
+
+  .onedrive-banner {
+    background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+    color: #fff; border-radius: var(--radius); padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+  }
+  .onedrive-banner p { font-size: 13px; opacity: .9; margin-top: 2px; }
+  .onedrive-banner strong { font-size: 14px; }
+
+  .chip {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    background: var(--accent3); color: var(--accent);
+    font-size: 11px; font-weight: 600; margin: 2px;
+  }
+
+  .comparison-row { display: flex; gap: 16px; align-items: stretch; margin-bottom: 12px; }
+  .comparison-label { width: 180px; flex-shrink: 0; font-size: 13px; color: var(--text2); padding-top: 8px; font-weight: 500; }
+  .comparison-bars { flex: 1; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .bar-date { font-size: 11px; color: var(--text2); width: 80px; flex-shrink: 0; }
+  .bar { height: 18px; border-radius: 4px; background: var(--accent); transition: width .4s; display: flex; align-items: center; padding-left: 6px; min-width: 30px; }
+  .bar span { font-size: 11px; color: #fff; font-weight: 600; white-space: nowrap; }
+  .bar.bar2 { background: var(--accent2); }
+  .bar.bar3 { background: #95d5b2; }
+
+  .progress-note { 
+    font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; 
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .prog-up { background: #d8f3dc; color: var(--accent); }
+  .prog-down { background: #ffe3de; color: var(--warn); }
+  .prog-eq { background: var(--surface2); color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="logo">
+    <h1>Rehab<span>Manos</span></h1>
+    <p>Terapia Ocupacional · Historia Clínica</p>
+  </div>
+  <nav>
+    <div class="nav-section">Navegación</div>
+    <a class="active" onclick="showPage('dashboard')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a onclick="showPage('pacientes')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pacientes
+    </a>
+    <a onclick="showPage('nueva-eval')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Nueva Evaluación
+    </a>
+    <a onclick="showPage('comparar')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Comparar Evolución
+    </a>
+    <div class="nav-section">Datos</div>
+    <a onclick="showPage('sync')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+      Sincronizar Drive
+    </a>
+    <a onclick="exportData()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar JSON
+    </a>
+    <a onclick="importData()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importar JSON
+    </a>
+  </nav>
+</aside>
+
+<!-- Overlay para cerrar sidebar en mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div id="page-dashboard">
+<header>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title">Dashboard</span>
+  </div>
+  <div class="header-actions">
+    <span style="font-size:12px;color:var(--text2)" id="last-sync-label">Sin sincronizar</span>
+    <button class="btn btn-primary btn-sm" onclick="showPage('nuevo-paciente')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nuevo paciente
+    </button>
+  </div>
+</header>
+<div class="content">
+  <div id="stats-row" class="grid-4" style="margin-bottom:28px"></div>
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header"><h3>Últimos pacientes</h3><a onclick="showPage('pacientes')" style="font-size:12px;color:var(--accent);cursor:pointer">Ver todos →</a></div>
+      <div class="card-body" id="recent-patients"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Actividad reciente</h3></div>
+      <div class="card-body" id="recent-activity" style="padding:0 24px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Distribución por patología</h3><span style="font-size:12px;color:var(--text2)" id="patologia-total-label"></span></div>
+    <div class="card-body" id="patologia-stats"></div>
+  </div>
+</div>
+</div>
+
+<!-- ===== PACIENTES ===== -->
+<div id="page-pacientes" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title">Pacientes</span>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="showPage('nuevo-paciente')">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nuevo paciente
+  </button>
+</header>
+<div class="content">
+  <div class="card">
+    <div class="card-header">
+      <div class="search-wrap" style="width:320px">
+        <svg class="search-icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar por nombre o diagnóstico..." id="search-input" oninput="renderPatientTable()" style="background:#fff">
+      </div>
+      <span id="patient-count" style="font-size:12px;color:var(--text2)"></span>
+    </div>
+    <div id="patient-table-wrap"></div>
+  </div>
+</div>
+</div>
+
+<!-- ===== NUEVO PACIENTE ===== -->
+<div id="page-nuevo-paciente" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title">Nuevo Paciente</span>
+  </div>
+  <button class="btn btn-secondary btn-sm" onclick="showPage('pacientes')">← Volver</button>
+</header>
+<div class="content">
+  <div style="max-width:700px">
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>Datos personales</h3></div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="form-group"><label>Nombre completo *</label><input id="np-nombre" placeholder="Apellido, Nombre"></div>
+        <div class="form-group"><label>DNI</label><input id="np-dni" placeholder="XX.XXX.XXX"></div>
+        <div class="form-group"><label>Fecha de nacimiento</label><input id="np-fnac" type="date"></div>
+        <div class="form-group"><label>Teléfono</label><input id="np-tel" placeholder="---"></div>
+        <div class="form-group"><label>Obra social / Prepaga</label><input id="np-os" placeholder="PAMI, IAPOS, etc."></div>
+        <div class="form-group"><label>N° afiliado</label><input id="np-afil" placeholder="---"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>Historia clínica</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>Patología principal *</label>
+        <select id="np-diag" onchange="toggleDetalleDiag('np-diag','np-diag-detalle-wrap')">
+          <option value="">-- Seleccionar patología --</option>
+          ${PATOLOGIAS.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" id="np-diag-detalle-wrap" style="display:none">
+        <label>Detalle / especificación</label>
+        <input id="np-diag-detalle" placeholder="Ej: radio derecho con desplazamiento, dedo índice, etc.">
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Mano afectada</label>
+          <select id="np-mano"><option>Derecha</option><option>Izquierda</option><option>Bilateral</option></select>
+        </div>
+        <div class="form-group"><label>Lateralidad</label>
+          <select id="np-lat"><option>Diestro/a</option><option>Zurdo/a</option><option>Ambidiestro/a</option></select>
+        </div>
+        <div class="form-group"><label>Fecha de cirugía</label><input id="np-fcirugia" type="date"></div>
+        <div class="form-group"><label>Fecha de inicio de terapia</label><input id="np-fini" type="date"></div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Médico derivante</label>
+          <select id="np-medico-sel" onchange="handleMedicoChange('np-medico-sel','np-medico-nuevo')">
+            <option value="">-- Seleccionar médico --</option>
+            <option value="__nuevo__">+ Agregar nuevo médico...</option>
+          </select>
+          <div style="display:none;margin-top:6px" id="np-medico-nuevo-wrap">
+            <div style="display:flex;gap:6px">
+              <input id="np-medico-nuevo" placeholder="Nombre y especialidad" style="flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:DM Sans,sans-serif;font-size:13.5px;outline:none">
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmNuevoMedico('np-medico-nuevo','np-medico-sel')">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group"><label>Antecedentes relevantes</label><textarea id="np-antec" placeholder="Cirugías previas, patologías crónicas, alergias..."></textarea></div>
+      <div class="form-group"><label>Objetivos terapéuticos</label><textarea id="np-objetivos" placeholder="Retomar actividades, reducir dolor, recuperar fuerza..."></textarea></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="showPage('pacientes')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveNewPatient()">Guardar paciente</button>
+  </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== FICHA PACIENTE ===== -->
+<div id="page-ficha" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:6px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="showPage('pacientes')">← Volver</button>
+    <span class="page-title" id="ficha-title">Paciente</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openEvalModal()">Nueva evaluación</button>
+    <button class="btn btn-primary btn-sm" onclick="showPage('comparar')">Ver evolución</button>
+  </div>
+</header>
+<div class="content">
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header"><h3>Datos del paciente</h3><button class="btn btn-secondary btn-sm" onclick="editCurrentPatient()">Editar</button></div>
+      <div class="card-body" id="ficha-datos"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Historia clínica</h3></div>
+      <div class="card-body" id="ficha-hc"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Evaluaciones realizadas</h3><span id="eval-count" class="badge badge-eval">0 evaluaciones</span></div>
+    <div class="card-body">
+      <div id="ficha-evals"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== NUEVA EVALUACIÓN ===== -->
+<div id="page-nueva-eval" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:6px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="goBack()">← Volver</button>
+    <span class="page-title">Nueva Evaluación</span>
+  </div>
+  <button class="btn btn-primary" onclick="saveEval()">Guardar evaluación</button>
+</header>
+<div class="content">
+  <div style="max-width:800px">
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>Paciente y sesión</h3></div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="form-group"><label>Paciente *</label>
+          <select id="eval-paciente"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group"><label>Fecha de evaluación *</label><input id="eval-fecha" type="date"></div>
+        <div class="form-group"><label>Tipo de evaluación</label>
+          <select id="eval-tipo"><option>Evaluación inicial</option><option>Seguimiento</option><option>Alta</option><option>Control</option></select>
+        </div>
+        <div class="form-group"><label>Sesión N°</label><input id="eval-sesion" type="number" min="1" placeholder="1"></div>
+      </div>
+      <div class="form-group"><label>Observaciones generales</label><textarea id="eval-obs" placeholder="Notas sobre el estado general del paciente en esta sesión..."></textarea></div>
+    </div>
+  </div>
+
+  <!-- DOLOR -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>🔴 Escala de Dolor (EVA/NRS)</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>Dolor en reposo (0-10)</label>
+        <div class="slider-wrap">
+          <span style="font-size:11px;color:var(--text2)">0</span>
+          <input type="range" min="0" max="10" value="0" id="eva-reposo" oninput="document.getElementById('eva-reposo-val').textContent=this.value">
+          <span style="font-size:11px;color:var(--text2)">10</span>
+          <div class="slider-val" id="eva-reposo-val">0</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dolor en movimiento (0-10)</label>
+        <div class="slider-wrap">
+          <span style="font-size:11px;color:var(--text2)">0</span>
+          <input type="range" min="0" max="10" value="0" id="eva-movimiento" oninput="document.getElementById('eva-movimiento-val').textContent=this.value">
+          <span style="font-size:11px;color:var(--text2)">10</span>
+          <div class="slider-val" id="eva-movimiento-val">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GONIOMETRÍA -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>📐 Goniometría — Rangos de Movimiento (ROM)</h3></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Valores en grados (°). Valores normales de referencia indicados.</p>
+      <div class="eval-section">
+        <h4>Muñeca</h4>
+        <div class="gonio-grid">
+          <div class="gonio-item"><label>Flexión (0-80°)</label><input id="g-mf" type="number" min="0" max="90" placeholder="—"></div>
+          <div class="gonio-item"><label>Extensión (0-70°)</label><input id="g-me" type="number" min="0" max="90" placeholder="—"></div>
+          <div class="gonio-item"><label>Desv. Radial (0-20°)</label><input id="g-mdr" type="number" min="0" max="30" placeholder="—"></div>
+          <div class="gonio-item"><label>Desv. Cubital (0-30°)</label><input id="g-mdc" type="number" min="0" max="40" placeholder="—"></div>
+          <div class="gonio-item"><label>Pronación (0-85°)</label><input id="g-pro" type="number" min="0" max="90" placeholder="—"></div>
+          <div class="gonio-item"><label>Supinación (0-85°)</label><input id="g-sup" type="number" min="0" max="90" placeholder="—"></div>
+        </div>
+      </div>
+      <div class="eval-section">
+        <h4>Pulgar</h4>
+        <div class="gonio-grid">
+          <div class="gonio-item"><label>MCF Flexión</label><input id="g-pmcf" type="number" min="0" max="60" placeholder="—"></div>
+          <div class="gonio-item"><label>IF Flexión</label><input id="g-pif" type="number" min="0" max="80" placeholder="—"></div>
+          <div class="gonio-item"><label>Abducción</label><input id="g-pabd" type="number" min="0" max="70" placeholder="—"></div>
+          <div class="gonio-item"><label>Oposición (cm)</label><input id="g-pop" type="number" min="0" max="15" placeholder="—"></div>
+        </div>
+      </div>
+      <div class="eval-section">
+        <h4>Dedos (2°–5°) — Especificar dedo si es lesión focal</h4>
+        <div class="gonio-grid">
+          <div class="gonio-item"><label>MCF Flexión</label><input id="g-dmcf" type="number" min="0" max="90" placeholder="—"></div>
+          <div class="gonio-item"><label>IFP Flexión</label><input id="g-difp" type="number" min="0" max="110" placeholder="—"></div>
+          <div class="gonio-item"><label>IFD Flexión</label><input id="g-difd" type="number" min="0" max="90" placeholder="—"></div>
+          <div class="gonio-item"><label>MCF Extensión</label><input id="g-dmce" type="number" min="-30" max="45" placeholder="—"></div>
+          <div class="gonio-item"><label>Dedo evaluado</label>
+            <select id="g-dedo" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:100%">
+              <option>Todos</option><option>Índice (2°)</option><option>Medio (3°)</option><option>Anular (4°)</option><option>Meñique (5°)</option>
+            </select>
+          </div>
+          <div class="gonio-item"><label>TAM (Total Active)</label><input id="g-tam" type="number" placeholder="—"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUERZA -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>💪 Fuerza de Prensión (Dinamometría)</h3></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Valores en kg. Protocolo ASHT: 3 mediciones, promedio. Posición: 0°-90° codo.</p>
+      <div class="grid-2">
+        <div class="eval-section">
+          <h4>Prensión global (kg)</h4>
+          <div class="gonio-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="gonio-item"><label>Medición 1</label><input id="f-pg1" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 2</label><input id="f-pg2" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 3</label><input id="f-pg3" type="number" step="0.1" placeholder="—"></div>
+          </div>
+          <div style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:8px">
+            <span style="font-size:12px;color:var(--text2)">Promedio: </span>
+            <strong id="f-pg-avg" style="color:var(--accent)">—</strong>
+          </div>
+        </div>
+        <div class="eval-section">
+          <h4>Pinza lateral (kg)</h4>
+          <div class="gonio-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="gonio-item"><label>Medición 1</label><input id="f-pl1" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 2</label><input id="f-pl2" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 3</label><input id="f-pl3" type="number" step="0.1" placeholder="—"></div>
+          </div>
+          <div style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:8px">
+            <span style="font-size:12px;color:var(--text2)">Promedio: </span>
+            <strong id="f-pl-avg" style="color:var(--accent)">—</strong>
+          </div>
+        </div>
+        <div class="eval-section">
+          <h4>Pinza pulpejo 3 dedos</h4>
+          <div class="gonio-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="gonio-item"><label>Medición 1</label><input id="f-pp1" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 2</label><input id="f-pp2" type="number" step="0.1" placeholder="—"></div>
+            <div class="gonio-item"><label>Medición 3</label><input id="f-pp3" type="number" step="0.1" placeholder="—"></div>
+          </div>
+          <div style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:8px">
+            <span style="font-size:12px;color:var(--text2)">Promedio: </span>
+            <strong id="f-pp-avg" style="color:var(--accent)">—</strong>
+          </div>
+        </div>
+        <div>
+          <div class="form-group" style="margin-top:4px"><label>Lado NO afectado (referencia)</label><input id="f-ref" type="number" step="0.1" placeholder="kg — mano contralateral"></div>
+          <div class="form-group"><label>% respecto al lado sano</label>
+            <div style="padding:10px;background:var(--surface2);border-radius:8px">
+              <strong id="f-pct" style="color:var(--accent);font-size:18px">—</strong>
+              <span style="font-size:12px;color:var(--text2)"> %</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENSIBILIDAD -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>🖐 Sensibilidad — Semmes-Weinstein</h3></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+        Filamentos SW: 2.83 = normal · 3.61 = disminuida · 4.31 = protectora disminuida · 4.56 = mínima protectora · 6.65 = insensible
+      </p>
+      <div class="eval-section">
+        <h4>Pulgar</h4>
+        <div class="sw-grid">
+          <div class="sw-item"><label>Radial</label><select id="sw-p-r" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+          <div class="sw-item"><label>Cubital</label><select id="sw-p-c" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+          <div class="sw-item"><label>Pulpejo</label><select id="sw-p-p" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+        </div>
+      </div>
+      <div class="eval-section">
+        <h4>Índice</h4>
+        <div class="sw-grid">
+          <div class="sw-item"><label>Radial</label><select id="sw-i-r" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+          <div class="sw-item"><label>Cubital</label><select id="sw-i-c" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+          <div class="sw-item"><label>Pulpejo</label><select id="sw-i-p" class="sw-sel"><option>—</option><option>2.83</option><option>3.61</option><option>4.31</option><option>4.56</option><option>6.65</option></select></div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Discriminación de 2 puntos (mm)</label>
+        <div class="grid-2">
+          <input id="sw-2p-est" type="number" placeholder="Estático (mm)">
+          <input id="sw-2p-mov" type="number" placeholder="Móvil (mm)">
+        </div>
+      </div>
+      <div class="form-group"><label>Observaciones sensibilidad</label><textarea id="sw-obs" placeholder="Distribución por territorio nervioso, parestesias..."></textarea></div>
+    </div>
+  </div>
+
+  <!-- DASH -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>📋 DASH — Disabilities of the Arm, Shoulder and Hand</h3></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+        QuickDASH (11 ítems). Puntaje 0-100. Mayor puntaje = mayor discapacidad.
+      </p>
+      <div class="dash-items" id="dash-items"></div>
+      <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px;display:flex;gap:20px;align-items:center">
+        <div><span style="font-size:12px;color:var(--text2)">Puntaje QuickDASH:</span> <strong id="dash-score" style="font-size:22px;color:var(--accent);font-family:'DM Serif Display'">—</strong></div>
+        <div style="flex:1;font-size:12px;color:var(--text2)" id="dash-interp"></div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ===== COMPARAR EVOLUCIÓN ===== -->
+<div id="page-comparar" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title">Comparar Evolución</span>
+  </div>
+</header>
+<div class="content">
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>Seleccionar paciente</h3></div>
+    <div class="card-body" style="padding:16px 24px">
+      <div style="display:flex;gap:12px;align-items:center">
+        <select id="comp-paciente" style="padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;min-width:260px" onchange="loadComparison()">
+          <option value="">-- Seleccionar paciente --</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="comparison-content"></div>
+</div>
+</div>
+
+<!-- ===== SYNC ===== -->
+<div id="page-sync" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title">Sincronizar con Google Drive</span>
+  </div>
+</header>
+<div class="content">
+  <div style="max-width:620px">
+
+  <!-- Google banner -->
+  <div class="onedrive-banner" style="background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);margin-bottom:20px">
+    <svg width="36" height="36" viewBox="0 0 87.3 78" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="white"/>
+      <path d="M43.65 25L29.9 1.2C28.55.4 27 0 25.45 0c-1.55 0-3.1.4-4.5 1.2L6.6 25h37.05z" fill="white"/>
+      <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l6.45 12z" fill="white"/>
+      <path d="M43.65 25L56.9 1.2C55.5.4 53.95 0 52.4 0H34.9c-1.55 0-3.1.4-4.5 1.2z" fill="rgba(255,255,255,.7)"/>
+      <path d="M59.8 53H27.5L13.75 76.8c1.4.8 2.95 1.2 4.5 1.2h50.8c1.55 0 3.1-.4 4.5-1.2z" fill="rgba(255,255,255,.7)"/>
+      <path d="M73.4 26.5l-6.85-11.85c-.8-1.4-1.95-2.5-3.3-3.3L49.5 35l10.3 18H87.3c0-1.55-.4-3.1-1.2-4.5z" fill="rgba(255,255,255,.5)"/>
+    </svg>
+    <div>
+      <strong>Google Drive</strong>
+      <p>Guardado automático del historial clínico en tu Google Drive. Sin instalaciones adicionales.</p>
+    </div>
+  </div>
+
+  <!-- Estado de conexión -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <h3>Estado de conexión</h3>
+      <span id="gdrive-status-badge" class="badge badge-inactive">No conectado</span>
+    </div>
+    <div class="card-body">
+      <div id="gdrive-user-info" style="display:none;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:9px">
+        <div style="font-size:13px"><strong id="gdrive-user-name"></strong></div>
+        <div style="font-size:12px;color:var(--text2)" id="gdrive-user-email"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">Archivo: <code id="gdrive-file-name">rehabmanos_data.json</code></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btn-gdrive-connect" onclick="gdriveConnect()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Conectar con Google
+        </button>
+        <button class="btn btn-secondary" id="btn-gdrive-disconnect" style="display:none" onclick="gdriveDisconnect()">Desconectar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acciones de sync -->
+  <div class="card" style="margin-bottom:16px" id="gdrive-actions-card">
+    <div class="card-header"><h3>Sincronización</h3></div>
+    <div class="card-body">
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2)" id="sync-stats"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-primary" onclick="gdriveSave()" id="btn-save-drive" disabled>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar en Drive
+        </button>
+        <button class="btn btn-ghost" onclick="gdriveLoad()" id="btn-load-drive" disabled>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Cargar desde Drive
+        </button>
+      </div>
+      <div id="sync-log" style="font-size:12px;color:var(--text2);min-height:20px"></div>
+      <div class="section-divider"></div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">También podés exportar/importar manualmente:</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="exportData()">Exportar JSON local</button>
+        <button class="btn btn-secondary btn-sm" onclick="importData()">Importar JSON local</button>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL EVAL RÁPIDA -->
+<div class="modal-overlay" id="eval-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nueva evaluación rápida</h2>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
+        Para registrar una evaluación completa, usá el menú <strong>Nueva Evaluación</strong>.
+      </p>
+      <button class="btn btn-primary" onclick="closeModal();showPage('nueva-eval')">Ir a evaluación completa</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="import-input" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<!-- MODAL EDITAR PACIENTE -->
+<div class="modal-overlay" id="edit-patient-modal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h2>Editar paciente</h2>
+      <button class="close-btn" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="card" style="margin-bottom:16px;box-shadow:none;border:none;padding:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Datos personales</div>
+        <div class="grid-2">
+          <div class="form-group"><label>Nombre completo *</label><input id="ep-nombre" placeholder="Apellido, Nombre"></div>
+          <div class="form-group"><label>DNI</label><input id="ep-dni" placeholder="XX.XXX.XXX"></div>
+          <div class="form-group"><label>Fecha de nacimiento</label><input id="ep-fnac" type="date"></div>
+          <div class="form-group"><label>Teléfono</label><input id="ep-tel" placeholder="---"></div>
+          <div class="form-group"><label>Obra social / Prepaga</label><input id="ep-os" placeholder="PAMI, IAPOS, etc."></div>
+          <div class="form-group"><label>N° afiliado</label><input id="ep-afil" placeholder="---"></div>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:8px 0 20px"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Historia clínica</div>
+      <div class="form-group">
+        <label>Patología principal *</label>
+        <select id="ep-diag" onchange="toggleDetalleDiag('ep-diag','ep-diag-detalle-wrap')"></select>
+      </div>
+      <div class="form-group" id="ep-diag-detalle-wrap" style="display:none">
+        <label>Detalle / especificación</label>
+        <input id="ep-diag-detalle" placeholder="Ej: radio derecho con desplazamiento, dedo índice, etc.">
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Mano afectada</label>
+          <select id="ep-mano"><option>Derecha</option><option>Izquierda</option><option>Bilateral</option></select>
+        </div>
+        <div class="form-group"><label>Lateralidad</label>
+          <select id="ep-lat"><option>Diestro/a</option><option>Zurdo/a</option><option>Ambidiestro/a</option></select>
+        </div>
+        <div class="form-group"><label>Fecha de cirugía</label><input id="ep-fcirugia" type="date"></div>
+        <div class="form-group"><label>Fecha de inicio de terapia</label><input id="ep-fini" type="date"></div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Médico derivante</label>
+          <select id="ep-medico-sel" onchange="handleMedicoChange('ep-medico-sel','ep-medico-nuevo')"></select>
+          <div style="display:none;margin-top:6px" id="ep-medico-nuevo-wrap">
+            <div style="display:flex;gap:6px">
+              <input id="ep-medico-nuevo" placeholder="Nombre y especialidad" style="flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:DM Sans,sans-serif;font-size:13.5px;outline:none">
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmNuevoMedico('ep-medico-nuevo','ep-medico-sel')">Guardar</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group"><label>Estado</label>
+          <select id="ep-estado"><option>Activo</option><option>Alta</option><option>Inactivo</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Antecedentes relevantes</label><textarea id="ep-antec" placeholder="Cirugías previas, patologías crónicas, alergias..."></textarea></div>
+      <div class="form-group"><label>Objetivos terapéuticos</label><textarea id="ep-objetivos" placeholder="Retomar actividades, reducir dolor, recuperar fuerza..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditPatient()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== PATOLOGÍAS GENÉRICAS =====
+const PATOLOGIAS = [
+  'Fractura de radio distal',
+  'Fractura de escafoides',
+  'Fractura metacarpiana',
+  'Fractura de falange',
+  'Síndrome del túnel carpiano',
+  'Síndrome de De Quervain',
+  'Dedo en resorte',
+  'Epicondilitis lateral (codo de tenis)',
+  'Epicondilitis medial (codo de golfista)',
+  'Lesión de tendón flexor',
+  'Lesión de tendón extensor',
+  'Lesión de nervio periférico',
+  'Artritis reumatoide',
+  'Artrosis / Osteoartritis',
+  'Enfermedad de Dupuytren',
+  'Síndrome regional complejo (SDRC)',
+  'Luxación articular',
+  'Quemaduras / Cicatrices',
+  'Amputación',
+  'Lesión del manguito rotador',
+  'Inmovilización prolongada',
+  'Otra'
+];
+
+// ===== DATA STORE =====
+let db = {
+  patients: [],
+  evaluations: [],
+  medicos: []
+};
+
+function loadDB() {
+  try {
+    const saved = localStorage.getItem('rehabmanos_db');
+    if (saved) {
+      db = JSON.parse(saved);
+      if (!db.medicos) db.medicos = [];
+    }
+  } catch(e) {}
+}
+function saveDB() {
+  localStorage.setItem('rehabmanos_db', JSON.stringify(db));
+  localStorage.setItem('rehabmanos_last_save', new Date().toISOString());
+}
+
+// ===== MÉDICOS =====
+function getMedicoOptions(selectedValue) {
+  const opts = db.medicos.map(m =>
+    `<option value="${m}" ${m === selectedValue ? 'selected' : ''}>${m}</option>`
+  ).join('');
+  return `<option value="">-- Seleccionar médico --</option>${opts}<option value="__nuevo__">+ Agregar nuevo médico...</option>`;
+}
+function handleMedicoChange(selectId, inputId) {
+  const sel = document.getElementById(selectId);
+  const wrap = document.getElementById(inputId + '-wrap');
+  if (sel.value === '__nuevo__') {
+    if (wrap) wrap.style.display = 'block';
+    const inp = document.getElementById(inputId);
+    if (inp) inp.focus();
+  } else {
+    if (wrap) wrap.style.display = 'none';
+  }
+}
+function confirmNuevoMedico(inputId, selectId) {
+  const inp = document.getElementById(inputId);
+  const sel = document.getElementById(selectId);
+  const wrap = document.getElementById(inputId + '-wrap');
+  const val = inp.value.trim();
+  if (val) {
+    if (!db.medicos.includes(val)) { db.medicos.push(val); saveDB(); }
+    if (wrap) wrap.style.display = 'none';
+    sel.innerHTML = getMedicoOptions(val);
+    sel.value = val;
+  } else {
+    if (wrap) wrap.style.display = 'none';
+    sel.value = '';
+  }
+}
+
+// ===== PATOLOGÍA HELPERS =====
+function getPatologiaOptions(selected) {
+  return PATOLOGIAS.map(p =>
+    `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`
+  ).join('');
+}
+function toggleDetalleDiag(selectId, detalleId) {
+  const val = document.getElementById(selectId).value;
+  const wrap = document.getElementById(detalleId);
+  wrap.style.display = val ? 'block' : 'none';
+}
+
+// ===== SIDEBAR MOBILE =====
+function toggleSidebar() {
+  document.querySelector('aside').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.querySelector('aside').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ===== ROUTING =====
+let currentPage = 'dashboard';
+let previousPage = 'dashboard';
+let currentPatientId = null;
+
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  previousPage = currentPage;
+  currentPage = page;
+  closeSidebar();
+
+  const el = document.getElementById('page-' + page);
+  if (el) el.style.display = '';
+
+  // nav highlight
+  const navMap = {
+    dashboard: 0, pacientes: 1, 'nueva-eval': 2, comparar: 3, sync: 4
+  };
+  const navLinks = document.querySelectorAll('nav a');
+  if (navMap[page] !== undefined) navLinks[navMap[page]]?.classList.add('active');
+
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'pacientes') renderPatientTable();
+  if (page === 'nuevo-paciente') initNuevoPacienteForm();
+  if (page === 'nueva-eval') initEvalForm();
+  if (page === 'comparar') initComparePage();
+  if (page === 'sync') renderSyncStats();
+}
+
+function goBack() { showPage(previousPage === currentPage ? 'pacientes' : previousPage); }
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const total = db.patients.length;
+  const active = db.patients.filter(p => p.estado !== 'Inactivo').length;
+  const totalEvals = db.evaluations.length;
+  const recent = db.evaluations.filter(e => {
+    const d = new Date(e.fecha);
+    const now = new Date();
+    return (now - d) < 30 * 24 * 3600000;
+  }).length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="label">Pacientes total</div><div class="value">${total}</div><div class="sub">registrados</div></div>
+    <div class="stat-card"><div class="label">En tratamiento</div><div class="value">${active}</div><div class="sub">activos</div></div>
+    <div class="stat-card"><div class="label">Evaluaciones</div><div class="value">${totalEvals}</div><div class="sub">registradas</div></div>
+    <div class="stat-card"><div class="label">Último mes</div><div class="value">${recent}</div><div class="sub">evaluaciones recientes</div></div>
+  `;
+
+  const recPts = [...db.patients].slice(-5).reverse();
+  if (recPts.length === 0) {
+    document.getElementById('recent-patients').innerHTML = `<div class="empty-state"><p>No hay pacientes registrados aún.</p><br><button class="btn btn-primary btn-sm" onclick="showPage('nuevo-paciente')">Agregar primer paciente</button></div>`;
+  } else {
+    document.getElementById('recent-patients').innerHTML = recPts.map(p => `
+      <div onclick="openPatient('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" class="hover-row">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent3);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--accent);font-size:13px;flex-shrink:0">${p.nombre.slice(0,2).toUpperCase()}</div>
+        <div style="flex:1"><div style="font-size:13.5px;font-weight:500">${p.nombre}</div><div style="font-size:11.5px;color:var(--text2)">${p.diagnostico}</div></div>
+        <span class="badge badge-active">${countEvals(p.id)} eval.</span>
+      </div>
+    `).join('');
+  }
+
+  const acts = [...db.evaluations].slice(-6).reverse();
+  if (acts.length === 0) {
+    document.getElementById('recent-activity').innerHTML = `<div class="empty-state"><p>Sin actividad reciente.</p></div>`;
+  } else {
+    document.getElementById('recent-activity').innerHTML = `<div class="timeline" style="padding:16px 16px 16px 32px">` +
+      acts.map(e => {
+        const p = db.patients.find(x => x.id === e.patientId);
+        return `<div class="tl-item"><div class="tl-date">${formatDate(e.fecha)}</div><div class="tl-card"><strong style="font-size:13px">${p ? p.nombre : 'Paciente'}</strong><br><span style="font-size:12px;color:var(--text2)">${e.tipo} · Sesión ${e.sesion || '—'}</span></div></div>`;
+      }).join('') + `</div>`;
+  }
+
+  // Estadísticas por patología
+  renderPatologiaStats();
+}
+
+function renderPatologiaStats() {
+  const statsEl = document.getElementById('patologia-stats');
+  const labelEl = document.getElementById('patologia-total-label');
+  if (!statsEl) return;
+
+  if (db.patients.length === 0) {
+    statsEl.innerHTML = `<div class="empty-state"><p>No hay pacientes registrados aún.</p></div>`;
+    return;
+  }
+
+  // Contar por patología
+  const counts = {};
+  db.patients.forEach(p => {
+    const key = p.diagnostico || 'Sin clasificar';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const maxVal = sorted[0][1];
+  if (labelEl) labelEl.textContent = `${db.patients.length} paciente${db.patients.length !== 1 ? 's' : ''} en total`;
+
+  statsEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">` +
+    sorted.map(([patologia, count]) => {
+      const pct = Math.round((count / db.patients.length) * 100);
+      const barWidth = Math.round((count / maxVal) * 100);
+      return `
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="min-width:220px;font-size:13px;color:var(--text)">${patologia}</div>
+          <div style="flex:1;background:var(--surface2);border-radius:4px;height:18px;overflow:hidden">
+            <div style="width:${barWidth}%;background:var(--accent);height:100%;border-radius:4px;display:flex;align-items:center;padding-left:6px;min-width:24px">
+              <span style="font-size:11px;color:#fff;font-weight:600;white-space:nowrap">${count}</span>
+            </div>
+          </div>
+          <div style="min-width:36px;text-align:right;font-size:12px;color:var(--text2)">${pct}%</div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+// ===== PACIENTES TABLE =====
+function renderPatientTable() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const filtered = db.patients.filter(p =>
+    p.nombre.toLowerCase().includes(q) || (p.diagnostico||'').toLowerCase().includes(q)
+  );
+  document.getElementById('patient-count').textContent = `${filtered.length} paciente${filtered.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    document.getElementById('patient-table-wrap').innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <h3>Sin pacientes</h3>
+        <p>Agregá tu primer paciente para comenzar.</p>
+        <br><button class="btn btn-primary btn-sm" onclick="showPage('nuevo-paciente')">Nuevo paciente</button>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('patient-table-wrap').innerHTML = `
+    <table class="patient-table">
+      <thead><tr>
+        <th>Paciente</th><th>Diagnóstico</th><th>Mano</th><th>Inicio</th><th>Evaluaciones</th><th>Estado</th><th></th>
+      </tr></thead>
+      <tbody>${filtered.map(p => `
+        <tr onclick="openPatient('${p.id}')">
+          <td><strong>${p.nombre}</strong><br><span style="font-size:11.5px;color:var(--text2)">${p.dni || '—'}</span></td>
+          <td>${p.diagnostico || '—'}</td>
+          <td>${p.mano || '—'}</td>
+          <td>${formatDate(p.fechaInicio)}</td>
+          <td><span class="badge badge-eval">${countEvals(p.id)}</span></td>
+          <td><span class="badge badge-active">Activo</span></td>
+          <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openPatient('${p.id}')">Ver ficha</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function countEvals(pid) { return db.evaluations.filter(e => e.patientId === pid).length; }
+
+// ===== NUEVO PACIENTE =====
+function saveNewPatient() {
+  const nombre = document.getElementById('np-nombre').value.trim();
+  const diagnostico = document.getElementById('np-diag').value.trim();
+  if (!nombre || !diagnostico) { alert('Nombre y patología son obligatorios.'); return; }
+
+  const medicoSel = document.getElementById('np-medico-sel');
+  const medico = (medicoSel && medicoSel.value !== '__nuevo__') ? medicoSel.value : '';
+
+  const patient = {
+    id: 'p_' + Date.now(),
+    nombre,
+    dni: document.getElementById('np-dni').value,
+    fechaNac: document.getElementById('np-fnac').value,
+    telefono: document.getElementById('np-tel').value,
+    obraSocial: document.getElementById('np-os').value,
+    nAfiliado: document.getElementById('np-afil').value,
+    diagnostico,
+    diagnosticoDetalle: document.getElementById('np-diag-detalle').value.trim(),
+    mano: document.getElementById('np-mano').value,
+    lateralidad: document.getElementById('np-lat').value,
+    fechaCirugia: document.getElementById('np-fcirugia').value,
+    fechaInicio: document.getElementById('np-fini').value,
+    medico,
+    antecedentes: document.getElementById('np-antec').value,
+    objetivos: document.getElementById('np-objetivos').value,
+    estado: 'Activo',
+    createdAt: new Date().toISOString()
+  };
+  db.patients.push(patient);
+  saveDB();
+  // Reset form
+  ['np-nombre','np-dni','np-fnac','np-tel','np-os','np-afil','np-fcirugia','np-fini','np-antec','np-objetivos','np-diag-detalle'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('np-diag').value = '';
+  document.getElementById('np-diag-detalle-wrap').style.display = 'none';
+  document.getElementById('np-medico-sel').innerHTML = getMedicoOptions('');
+  currentPatientId = patient.id;
+  openPatient(patient.id);
+}
+
+// Inicializar select de médicos en el form de nuevo paciente
+function initNuevoPacienteForm() {
+  const sel = document.getElementById('np-medico-sel');
+  if (sel) sel.innerHTML = getMedicoOptions('');
+  document.getElementById('np-diag-detalle-wrap').style.display = 'none';
+}
+
+// ===== FICHA PACIENTE =====
+function openPatient(id) {
+  currentPatientId = id;
+  const p = db.patients.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('ficha-title').textContent = p.nombre;
+
+  document.getElementById('ficha-datos').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${row('DNI', p.dni)} ${row('Fecha nac.', formatDate(p.fechaNac))}
+      ${row('Teléfono', p.telefono)} ${row('Obra social', p.obraSocial)}
+      ${row('N° afiliado', p.nAfiliado)} ${row('Lateralidad', p.lateralidad)}
+    </div>`;
+
+  const diagLabel = p.diagnosticoDetalle ? `<strong>${p.diagnostico}</strong> <span style="color:var(--text2);font-size:12px">— ${p.diagnosticoDetalle}</span>` : `<strong>${p.diagnostico}</strong>`;
+  document.getElementById('ficha-hc').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${row('Patología', diagLabel)}
+      ${row('Mano afectada', p.mano)}
+      ${p.fechaCirugia ? row('Fecha de cirugía', `<span style="color:var(--warn);font-weight:600">${formatDate(p.fechaCirugia)}</span>`) : ''}
+      ${row('Inicio terapia', formatDate(p.fechaInicio))}
+      ${p.fechaCirugia && p.fechaInicio ? row('Días cir. → terapia', diasEntre(p.fechaCirugia, p.fechaInicio)) : ''}
+      ${row('Médico derivante', p.medico)}
+      ${p.antecedentes ? `<div style="margin-top:8px"><span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Antecedentes</span><p style="font-size:13px;margin-top:4px">${p.antecedentes}</p></div>` : ''}
+      ${p.objetivos ? `<div style="margin-top:8px"><span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Objetivos</span><p style="font-size:13px;margin-top:4px">${p.objetivos}</p></div>` : ''}
+    </div>`;
+
+  const evals = db.evaluations.filter(e => e.patientId === id).sort((a,b) => new Date(b.fecha)-new Date(a.fecha));
+  document.getElementById('eval-count').textContent = `${evals.length} evaluaciones`;
+
+  if (evals.length === 0) {
+    document.getElementById('ficha-evals').innerHTML = `<div class="empty-state"><p>Sin evaluaciones registradas.</p><br><button class="btn btn-primary btn-sm" onclick="showPage('nueva-eval')">Primera evaluación</button></div>`;
+  } else {
+    document.getElementById('ficha-evals').innerHTML = `<div class="timeline" style="padding-left:28px">` +
+      evals.map(e => `
+        <div class="tl-item">
+          <div class="tl-date">${formatDate(e.fecha)} · ${e.tipo}</div>
+          <div class="tl-card">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+              ${e.eva ? `<span class="chip">Dolor: ${e.eva.reposo}/${e.eva.movimiento}</span>` : ''}
+              ${e.fuerza?.pgAvg ? `<span class="chip">Prensión: ${e.fuerza.pgAvg} kg</span>` : ''}
+              ${e.dash?.score !== undefined ? `<span class="chip">DASH: ${e.dash.score}</span>` : ''}
+              ${e.sesion ? `<span class="chip">Sesión ${e.sesion}</span>` : ''}
+            </div>
+            ${e.observaciones ? `<p style="font-size:12.5px;color:var(--text2)">${e.observaciones}</p>` : ''}
+          </div>
+        </div>`).join('') + `</div>`;
+  }
+
+  showPage('ficha');
+}
+
+function row(label, val) {
+  if (!val) return '';
+  return `<div style="display:flex;gap:8px"><span style="font-size:11.5px;font-weight:600;color:var(--text2);min-width:130px;text-transform:uppercase">${label}</span><span style="font-size:13.5px">${val}</span></div>`;
+}
+
+function diasEntre(fecha1, fecha2) {
+  const d1 = new Date(fecha1), d2 = new Date(fecha2);
+  const diff = Math.round((d2 - d1) / (1000*60*60*24));
+  if (isNaN(diff)) return '';
+  return diff >= 0 ? `${diff} días` : `<span style="color:var(--warn)">${Math.abs(diff)} días antes de cirugía</span>`;
+}
+
+function editCurrentPatient() {
+  const p = db.patients.find(x => x.id === currentPatientId);
+  if (!p) return;
+
+  const modal = document.getElementById('edit-patient-modal');
+  // Cargar datos en el modal
+  document.getElementById('ep-nombre').value = p.nombre || '';
+  document.getElementById('ep-dni').value = p.dni || '';
+  document.getElementById('ep-fnac').value = p.fechaNac || '';
+  document.getElementById('ep-tel').value = p.telefono || '';
+  document.getElementById('ep-os').value = p.obraSocial || '';
+  document.getElementById('ep-afil').value = p.nAfiliado || '';
+
+  // Patología
+  const diagSel = document.getElementById('ep-diag');
+  diagSel.innerHTML = `<option value="">-- Seleccionar --</option>${PATOLOGIAS.map(pat => `<option value="${pat}" ${pat === p.diagnostico ? 'selected' : ''}>${pat}</option>`).join('')}`;
+  document.getElementById('ep-diag-detalle').value = p.diagnosticoDetalle || '';
+  document.getElementById('ep-diag-detalle-wrap').style.display = p.diagnostico ? 'block' : 'none';
+
+  // Mano y lateralidad
+  document.getElementById('ep-mano').value = p.mano || 'Derecha';
+  document.getElementById('ep-lat').value = p.lateralidad || 'Diestro/a';
+  document.getElementById('ep-fcirugia').value = p.fechaCirugia || '';
+  document.getElementById('ep-fini').value = p.fechaInicio || '';
+
+  // Médico
+  const medicoSel = document.getElementById('ep-medico-sel');
+  medicoSel.innerHTML = getMedicoOptions(p.medico || '');
+  medicoSel.value = p.medico || '';
+
+  document.getElementById('ep-antec').value = p.antecedentes || '';
+  document.getElementById('ep-objetivos').value = p.objetivos || '';
+  document.getElementById('ep-estado').value = p.estado || 'Activo';
+
+  modal.classList.add('open');
+}
+
+function saveEditPatient() {
+  const p = db.patients.find(x => x.id === currentPatientId);
+  if (!p) return;
+
+  const nombre = document.getElementById('ep-nombre').value.trim();
+  const diagnostico = document.getElementById('ep-diag').value.trim();
+  if (!nombre || !diagnostico) { alert('Nombre y patología son obligatorios.'); return; }
+
+  const medicoSel = document.getElementById('ep-medico-sel');
+  const medico = (medicoSel && medicoSel.value !== '__nuevo__') ? medicoSel.value : p.medico;
+
+  p.nombre = nombre;
+  p.dni = document.getElementById('ep-dni').value;
+  p.fechaNac = document.getElementById('ep-fnac').value;
+  p.telefono = document.getElementById('ep-tel').value;
+  p.obraSocial = document.getElementById('ep-os').value;
+  p.nAfiliado = document.getElementById('ep-afil').value;
+  p.diagnostico = diagnostico;
+  p.diagnosticoDetalle = document.getElementById('ep-diag-detalle').value.trim();
+  p.mano = document.getElementById('ep-mano').value;
+  p.lateralidad = document.getElementById('ep-lat').value;
+  p.fechaCirugia = document.getElementById('ep-fcirugia').value;
+  p.fechaInicio = document.getElementById('ep-fini').value;
+  p.medico = medico;
+  p.antecedentes = document.getElementById('ep-antec').value;
+  p.objetivos = document.getElementById('ep-objetivos').value;
+  p.estado = document.getElementById('ep-estado').value;
+
+  saveDB();
+  document.getElementById('edit-patient-modal').classList.remove('open');
+  openPatient(currentPatientId);
+}
+
+function closeEditModal() {
+  document.getElementById('edit-patient-modal').classList.remove('open');
+}
+
+// ===== FORMULARIO EVALUACIÓN =====
+const DASH_QUESTIONS = [
+  'Abrir un frasco nuevo o con tapa apretada',
+  'Escribir',
+  'Girar una llave',
+  'Preparar una comida',
+  'Empujar o abrir una puerta pesada',
+  'Poner algo en un estante por encima de la cabeza',
+  'Tareas domésticas pesadas (limpiar pisos, etc.)',
+  'Trabajar en el jardín o patio',
+  'Hacer la cama',
+  'Llevar una bolsa de compras o maletín',
+  'Dolor en brazo, hombro o mano al realizar actividades'
+];
+
+function initEvalForm() {
+  const sel = document.getElementById('eval-paciente');
+  sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+    db.patients.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  if (currentPatientId) sel.value = currentPatientId;
+
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('eval-fecha').value = today;
+
+  // DASH
+  document.getElementById('dash-items').innerHTML = DASH_QUESTIONS.map((q, i) => `
+    <div class="dash-item">
+      <span>${i+1}. ${q}</span>
+      <select id="dash-q-${i}" onchange="calcDASH()">
+        <option value="">—</option>
+        <option value="1">1 - Sin dificultad</option>
+        <option value="2">2 - Poca dificultad</option>
+        <option value="3">3 - Dificultad moderada</option>
+        <option value="4">4 - Mucha dificultad</option>
+        <option value="5">5 - No puedo hacerlo</option>
+      </select>
+    </div>`).join('');
+
+  // fuerza auto-avg
+  ['pg','pl','pp'].forEach(t => {
+    ['1','2','3'].forEach(n => {
+      document.getElementById(`f-${t}${n}`).addEventListener('input', () => calcForce(t));
+    });
+  });
+  document.getElementById('f-pg1').addEventListener('input', calcPct);
+  document.getElementById('f-ref').addEventListener('input', calcPct);
+}
+
+function calcDASH() {
+  const vals = DASH_QUESTIONS.map((_,i) => {
+    const v = document.getElementById(`dash-q-${i}`)?.value;
+    return v ? parseInt(v) : null;
+  }).filter(v => v !== null);
+
+  if (vals.length < 11) {
+    document.getElementById('dash-score').textContent = `${vals.length}/11`;
+    document.getElementById('dash-interp').textContent = `Completá los ${11 - vals.length} ítems restantes`;
+    return;
+  }
+  const score = ((vals.reduce((a,b)=>a+b,0)/11 - 1) / 4 * 100).toFixed(1);
+  document.getElementById('dash-score').textContent = score;
+  const interp = score < 20 ? '🟢 Discapacidad mínima' : score < 40 ? '🟡 Leve' : score < 60 ? '🟠 Moderada' : '🔴 Severa';
+  document.getElementById('dash-interp').textContent = interp;
+}
+
+function calcForce(t) {
+  const vals = ['1','2','3'].map(n => parseFloat(document.getElementById(`f-${t}${n}`)?.value)).filter(v => !isNaN(v));
+  const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  document.getElementById(`f-${t}-avg`).textContent = avg;
+}
+function calcPct() {
+  const pg = parseFloat(document.getElementById('f-pg-avg')?.textContent);
+  const ref = parseFloat(document.getElementById('f-ref')?.value);
+  if (!isNaN(pg) && !isNaN(ref) && ref > 0) {
+    document.getElementById('f-pct').textContent = ((pg/ref)*100).toFixed(0);
+  }
+}
+
+function saveEval() {
+  const pid = document.getElementById('eval-paciente').value;
+  const fecha = document.getElementById('eval-fecha').value;
+  if (!pid || !fecha) { alert('Seleccioná paciente y fecha.'); return; }
+
+  const gVal = id => { const v = document.getElementById(id)?.value; return v !== '' ? parseFloat(v) : null; };
+  const sVal = id => document.getElementById(id)?.value || null;
+
+  const pgVals = [gVal('f-pg1'),gVal('f-pg2'),gVal('f-pg3')].filter(v=>v!==null);
+  const plVals = [gVal('f-pl1'),gVal('f-pl2'),gVal('f-pl3')].filter(v=>v!==null);
+  const ppVals = [gVal('f-pp1'),gVal('f-pp2'),gVal('f-pp3')].filter(v=>v!==null);
+  const avg = arr => arr.length ? +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null;
+
+  const dashVals = DASH_QUESTIONS.map((_,i) => { const v = document.getElementById(`dash-q-${i}`)?.value; return v ? parseInt(v) : null; });
+  const dashFilled = dashVals.filter(v=>v!==null);
+  const dashScore = dashFilled.length === 11 ? +((dashFilled.reduce((a,b)=>a+b,0)/11-1)/4*100).toFixed(1) : null;
+
+  const evaluation = {
+    id: 'e_' + Date.now(),
+    patientId: pid,
+    fecha, tipo: document.getElementById('eval-tipo').value,
+    sesion: document.getElementById('eval-sesion').value,
+    observaciones: document.getElementById('eval-obs').value,
+    eva: { reposo: parseInt(document.getElementById('eva-reposo').value), movimiento: parseInt(document.getElementById('eva-movimiento').value) },
+    goniometria: {
+      muneca: { flexion: gVal('g-mf'), extension: gVal('g-me'), desvRadial: gVal('g-mdr'), desvCubital: gVal('g-mdc'), pronacion: gVal('g-pro'), supinacion: gVal('g-sup') },
+      pulgar: { mcfFlex: gVal('g-pmcf'), ifFlex: gVal('g-pif'), abduccion: gVal('g-pabd'), oposicion: gVal('g-pop') },
+      dedos: { mcfFlex: gVal('g-dmcf'), ifpFlex: gVal('g-difp'), ifdFlex: gVal('g-difd'), mcfExt: gVal('g-dmce'), tam: gVal('g-tam'), dedo: sVal('g-dedo') }
+    },
+    fuerza: { pg: pgVals, pl: plVals, pp: ppVals, pgAvg: avg(pgVals), plAvg: avg(plVals), ppAvg: avg(ppVals), referencia: gVal('f-ref') },
+    semmes: {
+      pulgar: { radial: sVal('sw-p-r'), cubital: sVal('sw-p-c'), pulpejo: sVal('sw-p-p') },
+      indice: { radial: sVal('sw-i-r'), cubital: sVal('sw-i-c'), pulpejo: sVal('sw-i-p') },
+      dosP: { estatico: gVal('sw-2p-est'), movil: gVal('sw-2p-mov') },
+      obs: sVal('sw-obs')
+    },
+    dash: { items: dashVals, score: dashScore },
+    createdAt: new Date().toISOString()
+  };
+
+  db.evaluations.push(evaluation);
+  saveDB();
+  currentPatientId = pid;
+  openPatient(pid);
+}
+
+// ===== COMPARACIÓN =====
+function initComparePage() {
+  const sel = document.getElementById('comp-paciente');
+  sel.innerHTML = '<option value="">-- Seleccionar paciente --</option>' +
+    db.patients.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  if (currentPatientId) { sel.value = currentPatientId; loadComparison(); }
+  else document.getElementById('comparison-content').innerHTML = '';
+}
+
+function loadComparison() {
+  const pid = document.getElementById('comp-paciente').value;
+  if (!pid) { document.getElementById('comparison-content').innerHTML = ''; return; }
+
+  const evals = db.evaluations.filter(e => e.patientId === pid).sort((a,b) => new Date(a.fecha)-new Date(b.fecha));
+
+  if (evals.length < 1) {
+    document.getElementById('comparison-content').innerHTML = `<div class="card"><div class="card-body"><div class="empty-state"><p>Este paciente no tiene evaluaciones registradas aún.</p></div></div></div>`;
+    return;
+  }
+
+  const labels = evals.map(e => formatDateShort(e.fecha));
+  const colors = ['#2d6a4f','#52b788','#95d5b2','#b7e4c7'];
+
+  let html = '';
+
+  // Gráfico dolor
+  html += `<div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>🔴 Evolución del Dolor (EVA)</h3></div>
+    <div class="card-body"><div class="chart-wrap"><canvas id="chart-dolor"></canvas></div></div>
+  </div>`;
+
+  // Gráfico fuerza
+  html += `<div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>💪 Evolución de la Fuerza de Prensión (kg)</h3></div>
+    <div class="card-body"><div class="chart-wrap"><canvas id="chart-fuerza"></canvas></div></div>
+  </div>`;
+
+  // DASH
+  const dashScores = evals.map(e => e.dash?.score);
+  if (dashScores.some(v => v !== null)) {
+    html += `<div class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3>📋 Evolución DASH</h3></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="chart-dash"></canvas></div></div>
+    </div>`;
+  }
+
+  // Goniometría - tabla comparativa
+  html += `<div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3>📐 Comparación de Goniometría</h3></div>
+    <div class="card-body">` + buildGonioComparison(evals) + `</div>
+  </div>`;
+
+  document.getElementById('comparison-content').innerHTML = html;
+
+  // Render charts
+  setTimeout(() => {
+    renderLineChart('chart-dolor', labels,
+      [{ label: 'Reposo', data: evals.map(e=>e.eva?.reposo??null), borderColor:'#e07a5f', backgroundColor:'rgba(224,122,95,.1)' },
+       { label: 'Movimiento', data: evals.map(e=>e.eva?.movimiento??null), borderColor:'#f4a261', backgroundColor:'rgba(244,162,97,.1)' }],
+      { min: 0, max: 10 }
+    );
+    renderLineChart('chart-fuerza', labels,
+      [{ label: 'Prensión global (kg)', data: evals.map(e=>e.fuerza?.pgAvg??null), borderColor:'#2d6a4f', backgroundColor:'rgba(45,106,79,.1)' },
+       { label: 'Pinza lateral (kg)', data: evals.map(e=>e.fuerza?.plAvg??null), borderColor:'#52b788', backgroundColor:'rgba(82,183,136,.1)' }]
+    );
+    if (dashScores.some(v => v !== null)) {
+      renderLineChart('chart-dash', labels,
+        [{ label: 'Score DASH (0-100)', data: dashScores, borderColor:'#3d405b', backgroundColor:'rgba(61,64,91,.1)' }],
+        { min: 0, max: 100 }
+      );
+    }
+  }, 50);
+}
+
+function renderLineChart(id, labels, datasets, yOptions = {}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: datasets.map(d => ({ ...d, tension: .35, fill: true, pointRadius: 5, pointHoverRadius: 7 })) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 12 } } } },
+      scales: {
+        y: { ...yOptions, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { family: 'DM Sans' } } },
+        x: { grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { family: 'DM Sans' } } }
+      }
+    }
+  });
+}
+
+function buildGonioComparison(evals) {
+  if (evals.length === 0) return '<p style="color:var(--text2);font-size:13px">Sin datos de goniometría.</p>';
+
+  const metrics = [
+    ['Muñeca - Flexión', e => e.goniometria?.muneca?.flexion, 80],
+    ['Muñeca - Extensión', e => e.goniometria?.muneca?.extension, 70],
+    ['Muñeca - Pronación', e => e.goniometria?.muneca?.pronacion, 85],
+    ['Muñeca - Supinación', e => e.goniometria?.muneca?.supinacion, 85],
+    ['Dedos - MCF Flexión', e => e.goniometria?.dedos?.mcfFlex, 90],
+    ['Dedos - IFP Flexión', e => e.goniometria?.dedos?.ifpFlex, 110],
+    ['TAM', e => e.goniometria?.dedos?.tam, 260],
+  ];
+
+  return metrics.map(([label, fn, max]) => {
+    const vals = evals.map(e => ({ date: formatDateShort(e.fecha), val: fn(e) })).filter(x => x.val !== null && x.val !== undefined);
+    if (vals.length === 0) return '';
+
+    const last = vals[vals.length-1].val;
+    const first = vals[0].val;
+    const diff = last - first;
+    const progClass = diff > 0 ? 'prog-up' : diff < 0 ? 'prog-down' : 'prog-eq';
+    const progIcon = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+
+    return `<div class="comparison-row" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div class="comparison-label">
+        ${label}<br>
+        <span class="progress-note ${progClass}" style="margin-top:4px">${progIcon} ${Math.abs(diff)}°</span>
+      </div>
+      <div class="comparison-bars">
+        ${vals.map((v, i) => {
+          const barClass = i===0?'':'bar' + (i+1);
+          const pct = Math.min(100, (v.val/max)*100);
+          return `<div class="bar-wrap">
+            <span class="bar-date">${v.date}</span>
+            <div class="bar ${barClass}" style="width:${Math.max(pct,5)}%"><span>${v.val}°</span></div>
+            <span style="font-size:11px;color:var(--text2)">${((v.val/max)*100).toFixed(0)}% del normal</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('') || '<p style="color:var(--text2);font-size:13px">No hay datos de goniometría registrados.</p>';
+}
+
+// ===== SYNC / GOOGLE DRIVE =====
+
+// ── Configuración OAuth ──────────────────────────────────────────────────────
+// IMPORTANTE: Para usar Google Drive hay que crear un proyecto en
+// https://console.cloud.google.com/ y activar la Drive API.
+// Reemplazá CLIENT_ID con el tuyo (ver README al pie de página).
+const GDRIVE_CLIENT_ID = localStorage.getItem('gdrive_client_id') || '';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+const GDRIVE_FILENAME = 'rehabmanos_data.json';
+
+let gdriveToken = localStorage.getItem('gdrive_token') || null;
+let gdriveFileId = localStorage.getItem('gdrive_file_id') || null;
+
+function renderSyncStats() {
+  document.getElementById('sync-stats').innerHTML = `
+    <strong>Datos locales:</strong><br>
+    Pacientes: <strong>${db.patients.length}</strong> &nbsp;·&nbsp;
+    Evaluaciones: <strong>${db.evaluations.length}</strong><br>
+    Último guardado local: <strong>${formatDatetime(localStorage.getItem('rehabmanos_last_save'))}</strong><br>
+    Último sync Drive: <strong>${formatDatetime(localStorage.getItem('gdrive_last_sync'))}</strong>
+  `;
+  updateGdriveUI();
+}
+
+function updateGdriveUI() {
+  const connected = !!gdriveToken;
+  const badge = document.getElementById('gdrive-status-badge');
+  const btnConn = document.getElementById('btn-gdrive-connect');
+  const btnDisc = document.getElementById('btn-gdrive-disconnect');
+  const userInfo = document.getElementById('gdrive-user-info');
+  const btnSave = document.getElementById('btn-save-drive');
+  const btnLoad = document.getElementById('btn-load-drive');
+
+  if (!badge) return;
+
+  if (connected) {
+    badge.className = 'badge badge-active';
+    badge.textContent = 'Conectado';
+    btnConn.style.display = 'none';
+    btnDisc.style.display = '';
+    userInfo.style.display = '';
+    const email = localStorage.getItem('gdrive_user_email') || '';
+    const name = localStorage.getItem('gdrive_user_name') || 'Usuario Google';
+    document.getElementById('gdrive-user-name').textContent = name;
+    document.getElementById('gdrive-user-email').textContent = email;
+    document.getElementById('gdrive-file-name').textContent = GDRIVE_FILENAME;
+    btnSave.disabled = false;
+    btnLoad.disabled = false;
+  } else {
+    badge.className = 'badge badge-inactive';
+    badge.textContent = 'No conectado';
+    btnConn.style.display = '';
+    btnDisc.style.display = 'none';
+    userInfo.style.display = 'none';
+    if (btnSave) btnSave.disabled = true;
+    if (btnLoad) btnLoad.disabled = true;
+  }
+
+  // Si no hay CLIENT_ID configurado, mostrar aviso
+  if (!GDRIVE_CLIENT_ID) {
+    const log = document.getElementById('sync-log');
+    if (log) log.innerHTML = `<div style="padding:10px;background:#fff3e0;border-radius:8px;color:#e65100;font-size:12px">
+      ⚙️ <strong>Configuración requerida:</strong> Para activar Google Drive necesitás un Client ID de Google.
+      <a href="#" onclick="showClientIdSetup()" style="color:#1a73e8;font-weight:600">Configurar ahora →</a>
+    </div>`;
+  }
+}
+
+function showClientIdSetup() {
+  const id = prompt(`Para usar Google Drive necesitás:
+
+1. Ir a https://console.cloud.google.com/
+2. Crear un proyecto nuevo
+3. Activar "Google Drive API"
+4. Crear credenciales OAuth 2.0 (tipo: Aplicación web)
+5. Agregar como origen autorizado: el dominio donde usás la app
+6. Copiar el Client ID aquí:
+
+Ingresá tu Google OAuth Client ID:`);
+  if (id && id.trim()) {
+    localStorage.setItem('gdrive_client_id', id.trim());
+    location.reload();
+  }
+}
+
+function gdriveConnect() {
+  if (!GDRIVE_CLIENT_ID) { showClientIdSetup(); return; }
+
+  // Usar Google Identity Services (GIS) — carga dinámica
+  if (!window.google?.accounts?.oauth2) {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.onload = () => gdriveConnect();
+    script.onerror = () => syncLog('❌ Error cargando Google Identity Services. Verificá tu conexión a internet.', 'error');
+    document.head.appendChild(script);
+    return;
+  }
+
+  syncLog('Iniciando autenticación con Google...', 'info');
+
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: async (response) => {
+      if (response.error) {
+        syncLog('❌ Error de autenticación: ' + response.error, 'error');
+        return;
+      }
+      gdriveToken = response.access_token;
+      localStorage.setItem('gdrive_token', gdriveToken);
+
+      // Obtener info del usuario
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + gdriveToken }
+        });
+        const user = await res.json();
+        localStorage.setItem('gdrive_user_name', user.name || '');
+        localStorage.setItem('gdrive_user_email', user.email || '');
+      } catch(e) {}
+
+      syncLog('✅ Conectado con Google Drive.', 'ok');
+      updateGdriveUI();
+      renderSyncStats();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function gdriveDisconnect() {
+  if (confirm('¿Desconectar Google Drive? Los datos locales no se eliminarán.')) {
+    gdriveToken = null;
+    gdriveFileId = null;
+    localStorage.removeItem('gdrive_token');
+    localStorage.removeItem('gdrive_file_id');
+    localStorage.removeItem('gdrive_user_email');
+    localStorage.removeItem('gdrive_user_name');
+    syncLog('Desconectado de Google Drive.', 'info');
+    updateGdriveUI();
+    renderSyncStats();
+  }
+}
+
+async function gdriveSave() {
+  if (!gdriveToken) { syncLog('⚠️ Primero conectá tu cuenta de Google.', 'error'); return; }
+  syncLog('Guardando en Google Drive...', 'info');
+
+  const content = JSON.stringify(db, null, 2);
+  const blob = new Blob([content], { type: 'application/json' });
+
+  try {
+    let url, method;
+    if (gdriveFileId) {
+      // Actualizar archivo existente
+      url = `https://www.googleapis.com/upload/drive/v3/files/${gdriveFileId}?uploadType=media`;
+      method = 'PATCH';
+    } else {
+      // Crear archivo nuevo
+      const meta = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + gdriveToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: GDRIVE_FILENAME, mimeType: 'application/json', parents: ['appDataFolder'] })
+      });
+      if (!meta.ok) throw new Error('No se pudo crear el archivo (' + meta.status + ')');
+      const metaData = await meta.json();
+      gdriveFileId = metaData.id;
+      localStorage.setItem('gdrive_file_id', gdriveFileId);
+      url = `https://www.googleapis.com/upload/drive/v3/files/${gdriveFileId}?uploadType=media`;
+      method = 'PATCH';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Authorization': 'Bearer ' + gdriveToken, 'Content-Type': 'application/json' },
+      body: content
+    });
+    if (!res.ok) throw new Error('Error al guardar (' + res.status + ')');
+
+    const now = new Date().toISOString();
+    localStorage.setItem('gdrive_last_sync', now);
+    document.getElementById('last-sync-label').textContent = 'Drive: ' + formatDatetime(now);
+    syncLog('✅ Guardado en Google Drive — ' + formatDatetime(now), 'ok');
+    renderSyncStats();
+  } catch(e) {
+    syncLog('❌ Error: ' + e.message + '. El token puede haber expirado; intentá reconectar.', 'error');
+    if (e.message.includes('401') || e.message.includes('403')) {
+      gdriveToken = null; localStorage.removeItem('gdrive_token');
+      updateGdriveUI();
+    }
+  }
+}
+
+async function gdriveLoad() {
+  if (!gdriveToken) { syncLog('⚠️ Primero conectá tu cuenta de Google.', 'error'); return; }
+  syncLog('Buscando archivo en Google Drive...', 'info');
+
+  try {
+    // Buscar archivo por nombre en appDataFolder o Drive
+    let fileId = gdriveFileId;
+    if (!fileId) {
+      const search = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILENAME}'&spaces=appDataFolder,drive&fields=files(id,name,modifiedTime)`,
+        { headers: { Authorization: 'Bearer ' + gdriveToken } }
+      );
+      const data = await search.json();
+      if (!data.files || data.files.length === 0) {
+        syncLog('⚠️ No se encontró archivo en Drive. Guardá primero desde esta app.', 'error');
+        return;
+      }
+      fileId = data.files[0].id;
+      gdriveFileId = fileId;
+      localStorage.setItem('gdrive_file_id', fileId);
+    }
+
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + gdriveToken }
+    });
+    if (!res.ok) throw new Error('Error al descargar (' + res.status + ')');
+
+    const imported = await res.json();
+    if (!imported.patients || !imported.evaluations) throw new Error('Formato de archivo inválido');
+
+    if (confirm(`Cargar datos de Google Drive?\n\nEsto reemplazará los datos locales.\nDrive tiene: ${imported.patients.length} pacientes, ${imported.evaluations.length} evaluaciones.`)) {
+      db = imported;
+      saveDB();
+      const now = new Date().toISOString();
+      localStorage.setItem('gdrive_last_sync', now);
+      syncLog('✅ Datos cargados desde Google Drive.', 'ok');
+      renderSyncStats();
+    }
+  } catch(e) {
+    syncLog('❌ Error: ' + e.message, 'error');
+  }
+}
+
+function syncLog(msg, type) {
+  const el = document.getElementById('sync-log');
+  if (!el) return;
+  const color = type === 'ok' ? 'var(--accent)' : type === 'error' ? 'var(--warn)' : 'var(--text2)';
+  el.innerHTML = `<span style="color:${color}">${msg}</span>`;
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  const data = JSON.stringify(db, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rehabmanos_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() { document.getElementById('import-input').click(); }
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (!imported.patients || !imported.evaluations) throw new Error('Formato inválido');
+      if (confirm(`Importar ${imported.patients.length} pacientes y ${imported.evaluations.length} evaluaciones? Los datos actuales serán reemplazados.`)) {
+        db = imported;
+        saveDB();
+        showPage('dashboard');
+        alert('✅ Datos importados correctamente.');
+      }
+    } catch(err) {
+      alert('Error al importar: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ===== MODAL =====
+function openEvalModal() { document.getElementById('eval-modal').classList.add('open'); }
+function closeModal() { document.getElementById('eval-modal').classList.remove('open'); }
+
+// ===== UTILS =====
+function formatDate(d) {
+  if (!d) return '—';
+  try { return new Date(d + (d.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}); }
+  catch { return d; }
+}
+function formatDateShort(d) {
+  if (!d) return '—';
+  try { return new Date(d + (d.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit'}); }
+  catch { return d; }
+}
+function formatDatetime(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleString('es-AR'); } catch { return d; }
+}
+
+// ===== INIT =====
+loadDB();
+showPage('dashboard');
+</script>
+</body>
+</html>
